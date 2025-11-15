@@ -86,6 +86,21 @@ document.addEventListener("DOMContentLoaded", () => {
       img.src = placeholder(img.alt || 'technology');
     }, { once: true });
   });
+  // Auto-tag existing article links so inline reader always works
+  const autoTagInlineLinks = () => {
+    const anchors = document.querySelectorAll('.story-card a, a.card-media, .trending-list a, .latest-list a, .popular-list a, .header-quick-links a');
+    anchors.forEach(a => {
+      const href = a.getAttribute('href') || '';
+      if (!href) return;
+      // Only tag internal article/page html links (exclude hashes and external)
+      if (/\.html?$/i.test(href) && !/^https?:/i.test(href) && !a.hasAttribute('data-inline')) {
+        a.setAttribute('data-inline', 'reader');
+        a.setAttribute('data-url', href);
+      }
+    });
+  };
+  autoTagInlineLinks();
+
   const articles = [
     { title: 'AI Agents Are Creating New Hacking Risks — Experts Warn', url: 'ai-agents-hacking-risks.html', thumb: "article pic/AI agents or hackers' best friends/Generated Image November 15, 2025 - 2_21PM (1).png" },
     { title: 'How to Delete Gmail Account', url: 'delete-gmail-account.html', thumb: 'article pic/How to Permanently Delete Your Gmai/maxresdefault (1).webp' },
@@ -93,34 +108,6 @@ document.addEventListener("DOMContentLoaded", () => {
     { title: 'Canara Bank FD Partial Withdrawal', url: 'canara-bank-fd-partial-withdrawal.html', thumb: 'article pic/Canara Bank FD partial withdrawal/VS--YouTube-HowtoWithdrawPartofYourFixedDepositinCanaraBankinkannadaCanaraBankFDPartialRedempti-1’35”.jpg' },
     { title: 'ChatGPT GO Upgrade', url: 'chatgpt-go-upgrade.html', thumb: 'article pic/ow to Use ChatGPT Go for/maxresdefault.webp' }
   ];
-  const trendingList = document.querySelector('.trending-list');
-  if (trendingList) {
-    trendingList.innerHTML = articles.slice(0, 5).map(a => `<li><a href="${a.url}" data-inline="reader" data-url="${a.url}">${a.title}</a></li>`).join('');
-  }
-  const latestList = document.querySelector('.latest-list');
-  if (latestList) {
-    latestList.innerHTML = articles.slice(0, 5).map(a => {
-      const src = a.thumb ? encodeURI(a.thumb) : placeholder();
-      return `<li><a href="${a.url}" data-inline="reader" data-url="${a.url}"><img src="${src}" alt="${a.title}" loading="lazy"><span>${a.title}</span></a></li>`;
-    }).join('');
-  }
-  let popularList = document.querySelector('.popular-list');
-  if (!popularList) {
-    const sidebar = document.querySelector('.about-sidebar.sidebar-sticky') || document.querySelector('aside.sidebar-sticky') || document.querySelector('aside');
-    if (sidebar) {
-      const section = document.createElement('section');
-      section.className = 'sidebar-section';
-      section.innerHTML = `
-        <h3 class="sidebar-title">⭐ Popular Posts</h3>
-        <ul class="popular-list"></ul>
-      `;
-      sidebar.appendChild(section);
-      popularList = section.querySelector('.popular-list');
-    }
-  }
-  if (popularList) {
-    popularList.innerHTML = articles.slice(0, 5).map(a => `<li><a href="${a.url}" data-inline="reader" data-url="${a.url}">${a.title}</a></li>`).join('');
-  }
   const renderCard = (a) => {
     const src = a.thumb ? encodeURI(a.thumb) : placeholder();
     return `<article class="story-card">
@@ -241,36 +228,94 @@ window.addEventListener("pageshow", () => {
   hideLoader();
 });
 
-// Inline Reader: open article inside overlay on homepage
-(function(){
-  const overlay = document.getElementById('inlineReader');
-  const content = document.getElementById('inlineReaderContent');
-  const closeBtn = document.getElementById('inlineReaderClose');
-  if (!overlay || !content) return;
+// --- Lightweight SPA hash router: #post=..., #page=..., #category=...
+function readHashPost() {
+  const m = /#.*(?:post|Post)=([^&]+)/.exec(location.hash);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function readHashPage() {
+  const m = /#.*(?:page|Page)=([^&]+)/.exec(location.hash);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function readHashCategory() {
+  const m = /#.*(?:category|Category)=([^&]+)/.exec(location.hash);
+  return m ? decodeURIComponent(m[1]) : null;
+}
 
-  document.addEventListener('click', async (e) => {
-    const a = e.target.closest('a[data-inline="reader"]');
-    if (!a) return;
-    e.preventDefault();
-    const url = a.getAttribute('data-url') || a.getAttribute('href');
-    if (!url) return;
+function mapPageToUrl(slug) {
+  // About page is article.html in this site
+  if (!slug) return null;
+  if (/^about$/i.test(slug)) return 'article.html';
+  if (/^contact$/i.test(slug)) return 'contact.html';
+  if (/^privacy$/i.test(slug)) return 'privacy.html';
+  if (/^disclaimer$/i.test(slug)) return 'disclaimer.html';
+  return null;
+}
 
-    const ok = await fetchAndShowInlineArticle(url);
-    if (ok && window.history && window.history.pushState) {
-      window.history.pushState({ inlineArticle: true, url }, '', url);
-    } else {
-      window.location.href = url; // fallback
-    }
-  });
+function mapPostToUrl(slug) {
+  if (!slug) return null;
+  // If already ends with .html, use as-is; else append .html
+  if (/\.html?$/i.test(slug)) return slug;
+  return `${slug}.html`;
+}
 
-  // Allow Contact/Disclaimer/Privacy to navigate normally (no interception)
+function scrollToCategory(cat) {
+  if (!cat) return false;
+  // Try to find an element by id matching the category or known sections
+  const idCandidates = [
+    cat, cat.toLowerCase(),
+    cat.toLowerCase().replace(/\s+/g,'-'),
+    `${cat.toLowerCase()}-heading`,
+    'latest-heading','trending-heading','popular-heading','tech-heading'
+  ];
+  for (const id of idCandidates) {
+    const node = document.getElementById(id);
+    if (node) { node.scrollIntoView({ behavior: 'smooth', block: 'start' }); return true; }
+  }
+  return false;
+}
 
-  closeBtn?.addEventListener('click', () => {
-    overlay.hidden = true;
-    content.innerHTML = '';
-    document.body.style.overflow = '';
-  });
-})();
+async function handleHashNavigation() {
+  const pageSlug = readHashPage();
+  const postSlug = readHashPost();
+  const cat = readHashCategory();
+  if (pageSlug) {
+    const url = mapPageToUrl(pageSlug);
+    if (url) await fetchAndShowInlineArticle(url);
+    return;
+  }
+  if (postSlug) {
+    const url = mapPostToUrl(postSlug);
+    if (url) await fetchAndShowInlineArticle(url);
+    return;
+  }
+  if (cat) {
+    scrollToCategory(cat);
+    return;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  handleHashNavigation();
+});
+window.addEventListener('hashchange', () => {
+  handleHashNavigation();
+});
+
+// Inline Reader: open article inline inside #inlineArticle on homepage (no overlay required)
+document.addEventListener('click', async (e) => {
+  const a = e.target.closest('a[data-inline="reader"]');
+  if (!a) return;
+  e.preventDefault();
+  const url = a.getAttribute('data-url') || a.getAttribute('href');
+  if (!url) return;
+  const ok = await fetchAndShowInlineArticle(url);
+  if (ok && window.history && window.history.pushState) {
+    window.history.pushState({ inlineArticle: true, url }, '', url);
+  } else {
+    window.location.href = url; // fallback
+  }
+});
 
 // Shared utility: fetch a URL and replace the current page's main content
 async function fetchAndReplaceMain(url) {
@@ -315,29 +360,180 @@ async function fetchAndShowInlineArticle(url) {
                       || tmp.querySelector('main .article-content')
                       || tmp.querySelector('article.article-content');
 
-    // Render the article as-is (full header, hero, H1) inside the same layout
+    // Decide rendering mode: static pages full vs article compact
+    const isStaticPage = /(?:article|contact|privacy|disclaimer)\.html$/i.test(url);
+
+    // Prepare wrapper with incoming content
+    slotContent.innerHTML = '';
+    const wrapper = document.createElement('article');
+    wrapper.className = 'article-content';
+
     if (articleOnly) {
-      slotContent.innerHTML = '';
-      const wrapper = document.createElement('article');
-      wrapper.className = 'article-content';
       wrapper.innerHTML = articleOnly.innerHTML;
-      slotContent.appendChild(wrapper);
     } else {
       const mainLike = tmp.querySelector('.article-main') || tmp.querySelector('main') || tmp.body || tmp;
       mainLike.querySelectorAll('aside').forEach(a => a.remove());
-      slotContent.innerHTML = '';
-      const wrapper = document.createElement('article');
-      wrapper.className = 'article-content';
       wrapper.innerHTML = mainLike.innerHTML;
-      slotContent.appendChild(wrapper);
     }
 
-    // Do not add extra bars, borders, or controls; keep layout identical
+    if (isStaticPage) {
+      // Static pages: render as-is (no truncation, no header/hero removal)
+      slotContent.appendChild(wrapper);
+      slot.hidden = false;
+      slot.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return true;
+    }
+
+    // Articles: render compact inline preview (shrink header, hide hero)
+    // Capture a thumbnail from hero or first image before we prune
+    let thumbSrc = '';
+    let thumbAlt = '';
+    const heroImg = wrapper.querySelector('.article-hero img');
+    const anyImg = heroImg || wrapper.querySelector('img');
+    // Extract title from existing header/H1 early for alt fallback
+    const preTitleNode = wrapper.querySelector('.article-header h1, h1');
+    if (anyImg) {
+      thumbSrc = anyImg.getAttribute('src') || anyImg.src || '';
+      thumbAlt = anyImg.getAttribute('alt') || preTitleNode?.textContent?.trim() || '';
+    }
+
+    // Remove big hero in inline preview
+    wrapper.querySelectorAll('.article-hero').forEach(el => el.remove());
+
+    // Extract title from existing header/H1
+    const titleNode = wrapper.querySelector('.article-header h1, h1');
+    const titleText = titleNode ? titleNode.textContent.trim() : '';
+
+    // Remove bulky header block
+    const headerBlock = wrapper.querySelector('.article-header');
+    if (headerBlock) headerBlock.remove();
+
+    // Demote remaining H1s to H3 inside inline preview
+    wrapper.querySelectorAll('h1').forEach(node => {
+      const h3 = document.createElement('h3');
+      h3.innerHTML = node.innerHTML;
+      h3.className = node.className || '';
+      node.replaceWith(h3);
+    });
+
+    // Insert compact heading at the top if found
+    let compactTitle = null;
+    if (titleText) {
+      compactTitle = document.createElement('h3');
+      compactTitle.className = 'inline-article-heading';
+      compactTitle.textContent = titleText;
+      wrapper.prepend(compactTitle);
+    }
+
+    // If we have a thumbnail, insert it under the title
+    if (thumbSrc) {
+      const thumb = document.createElement('div');
+      thumb.className = 'inline-thumb';
+      thumb.innerHTML = `<img src="${thumbSrc}" alt="${thumbAlt}">`;
+      if (compactTitle) {
+        compactTitle.insertAdjacentElement('afterend', thumb);
+      } else {
+        wrapper.prepend(thumb);
+      }
+    }
+
+    // Truncate body to first 20 words for inline preview
+    const getWords = (str, limit) => {
+      const words = (str || '').trim().replace(/\s+/g, ' ').split(' ');
+      if (words.length <= limit) return words.join(' ');
+      return words.slice(0, limit).join(' ') + '…';
+    };
+    const firstP = wrapper.querySelector('p');
+    const sourceText = firstP ? firstP.textContent : wrapper.textContent;
+    const excerpt = getWords(sourceText, 20);
+
+    // Keep only the compact title (if any), then an excerpt paragraph
+    Array.from(wrapper.children).forEach((child) => {
+      if (!compactTitle || child !== compactTitle) child.remove();
+    });
+    const previewP = document.createElement('p');
+    previewP.textContent = excerpt;
+    const insertAfter = wrapper.querySelector('.inline-thumb') || compactTitle;
+    if (insertAfter) {
+      insertAfter.insertAdjacentElement('afterend', previewP);
+    } else {
+      wrapper.prepend(previewP);
+    }
+
+    // Optional small heading to denote recent inline
+    const recentHeading = document.createElement('h2');
+    recentHeading.id = 'recent-heading';
+    recentHeading.textContent = 'Recent';
+    slotContent.appendChild(recentHeading);
+    slotContent.appendChild(wrapper);
+
+    // Bottom controls: Continue reading (full article inline) + Close
+    const controls = document.createElement('div');
+    controls.className = 'inline-continue';
+    controls.innerHTML = `
+      <p style="margin-top:12px;">
+        <a href="#" class="cta" data-inline-full data-url="${url}">Continue reading →</a>
+        <button type="button" class="cta" data-inline-close style="margin-left:10px;background:var(--surface);color:var(--accent);border:1px solid var(--accent);">Close</button>
+      </p>
+    `;
+    slotContent.appendChild(controls);
+
+    // Wire close and continue-full
+    const doClose = () => {
+      slot.hidden = true;
+      slotContent.innerHTML = '';
+      if (window.history && window.history.pushState) {
+        const hash = location.hash || '#top';
+        window.history.pushState({}, '', hash);
+      }
+      document.body.style.overflow = '';
+    };
+    controls.querySelector('[data-inline-close]')?.addEventListener('click', doClose);
+    controls.querySelector('[data-inline-full]')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetchAndShowFullInlineArticle(url);
+    });
+
     slot.hidden = false;
-    // Scroll the inline section into view
     slot.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return true;
   } catch (err) {
+    return false;
+  } finally {
+    hideLoader();
+  }
+}
+
+// Render the full article inline (no truncation, keep header + hero)
+async function fetchAndShowFullInlineArticle(url) {
+  const slot = document.getElementById('inlineArticle');
+  const slotContent = document.getElementById('inlineArticleContent');
+  if (!slot || !slotContent) return false;
+  try {
+    showLoader();
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const html = await res.text();
+    const tmp = document.createElement('html');
+    tmp.innerHTML = html;
+    const articleOnly = tmp.querySelector('.article-main > .article-content')
+                      || tmp.querySelector('main .article-content')
+                      || tmp.querySelector('article.article-content');
+    slotContent.innerHTML = '';
+    const wrapper = document.createElement('article');
+    wrapper.className = 'article-content';
+    if (articleOnly) {
+      wrapper.innerHTML = articleOnly.innerHTML;
+    } else {
+      const mainLike = tmp.querySelector('.article-main') || tmp.querySelector('main') || tmp.body || tmp;
+      mainLike.querySelectorAll('aside').forEach(a => a.remove());
+      wrapper.innerHTML = mainLike.innerHTML;
+    }
+    slotContent.appendChild(wrapper);
+    slot.hidden = false;
+    slot.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return true;
+  } catch (e) {
     return false;
   } finally {
     hideLoader();
