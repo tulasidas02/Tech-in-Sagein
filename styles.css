@@ -46,8 +46,10 @@ a {
 
 .site-masthead,
 .masthead {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   backdrop-filter: blur(16px);
   background: color-mix(in srgb, var(--bg) 85%, transparent);
