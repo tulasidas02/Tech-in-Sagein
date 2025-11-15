@@ -86,14 +86,17 @@ document.addEventListener("DOMContentLoaded", () => {
       img.src = placeholder(img.alt || 'technology');
     }, { once: true });
   });
-  // Auto-tag existing article links so inline reader always works
+  // Auto-tag existing internal links so inline reader always works site-wide
   const autoTagInlineLinks = () => {
-    const anchors = document.querySelectorAll('.story-card a, a.card-media, .trending-list a, .latest-list a, .popular-list a, .header-quick-links a');
+    const anchors = document.querySelectorAll('a');
     anchors.forEach(a => {
+      if (a.hasAttribute('data-inline')) return;
       const href = a.getAttribute('href') || '';
       if (!href) return;
-      // Only tag internal article/page html links (exclude hashes and external)
-      if (/\.html?$/i.test(href) && !/^https?:/i.test(href) && !a.hasAttribute('data-inline')) {
+      // Skip external links, hash-only links, JS links, and links explicitly marked for hard refresh
+      if (/^https?:/i.test(href) || href.startsWith('#') || href.startsWith('javascript:') || a.dataset.refresh === 'hard') return;
+      // Only tag internal article/page html links
+      if (/\.html?$/i.test(href)) {
         a.setAttribute('data-inline', 'reader');
         a.setAttribute('data-url', href);
       }
@@ -477,6 +480,8 @@ async function fetchAndShowInlineArticle(url) {
       </p>
     `;
     slotContent.appendChild(controls);
+    // Retag any links inside the injected content so future clicks remain inline
+    autoTagInlineLinks();
 
     // Wire close and continue-full
     const doClose = () => {
@@ -530,6 +535,8 @@ async function fetchAndShowFullInlineArticle(url) {
       wrapper.innerHTML = mainLike.innerHTML;
     }
     slotContent.appendChild(wrapper);
+    // Retag any links inside the injected content so future clicks remain inline
+    autoTagInlineLinks();
     slot.hidden = false;
     slot.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return true;
