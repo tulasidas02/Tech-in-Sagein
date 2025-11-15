@@ -1505,11 +1505,11 @@ body {
 }
 
 @media (max-width: 640px) {
-  .site-header {
-    flex-direction: column;
-    gap: 16px;
-  }
-
+  .site-masthead .site-header { position: relative; padding: 10px 0; }
+  .site-header { flex-direction: row; align-items: center; gap: 12px; }
+  .header-quick-links { overflow-x: auto; white-space: nowrap; gap: 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .header-quick-links::-webkit-scrollbar { display: none; }
+  .mode-toggle { position: absolute; top: 12px; right: 12px; }
   .site-nav {
     align-items: flex-start;
     gap: 12px;
@@ -1520,39 +1520,25 @@ body {
   }
 
   .nav-list {
+    display: flex;
     width: 100%;
-    flex-direction: row;
-    gap: 10px;
-    row-gap: 8px;
+    gap: 12px;
     align-items: center;
-    overflow: visible;
-    padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 12px;
     margin: 0;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
 
-  .nav-list li {
-    flex: 1 1 auto;
-  }
+  .nav-list::-webkit-scrollbar { display: none; }
 
-  .nav-list a {
-    width: auto;
-    min-width: 0;
-  }
+  .nav-list li { flex: 0 0 auto; }
 
-  .nav-list::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  .nav-list::-webkit-scrollbar-thumb {
-    background: var(--accent-soft);
-    border-radius: 999px;
-  }
-
-  .nav-list::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  .nav-list a { display: inline-flex; padding: 8px 12px; }
 
   .search-form {
     padding: 10px 16px;
