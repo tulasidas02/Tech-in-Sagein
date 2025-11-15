@@ -452,13 +452,16 @@ body {
 }
 
 .search-form {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   background: var(--surface);
-  padding: 8px 14px;
+  padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
+  width: auto;
+  max-width: none;
+  flex: 0 0 auto;
 }
 
 .search-form input {
@@ -467,11 +470,10 @@ body {
   color: var(--text);
   font-size: 0.95rem;
   width: 160px;
+  min-width: 0;
 }
 
-.search-form input:focus {
-  outline: none;
-}
+.search-form input::placeholder { color: var(--muted); opacity: 0.85; }
 
 .search-form button {
   border: none;
@@ -484,6 +486,11 @@ body {
   fill: var(--muted);
   width: 20px;
   height: 20px;
+}
+
+@media (max-width: 640px) {
+  .search-form { width: auto; padding: 8px 12px; }
+  .search-form input { font-size: 16px; width: 140px; }
 }
 
 .hero {
