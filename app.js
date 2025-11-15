@@ -407,9 +407,12 @@ async function fetchAndShowInlineArticle(url) {
     const titleNode = wrapper.querySelector('.article-header h1, h1');
     const titleText = titleNode ? titleNode.textContent.trim() : '';
 
-    // Remove bulky header block
+    // Remove bulky header block (keep any section header separate)
     const headerBlock = wrapper.querySelector('.article-header');
     if (headerBlock) headerBlock.remove();
+
+    // Capture and keep any section header if present
+    const sectionHeader = wrapper.querySelector('.section-header') || null;
 
     // Demote remaining H1s to H3 inside inline preview
     wrapper.querySelectorAll('h1').forEach(node => {
@@ -425,7 +428,17 @@ async function fetchAndShowInlineArticle(url) {
       compactTitle = document.createElement('h3');
       compactTitle.className = 'inline-article-heading';
       compactTitle.textContent = titleText;
-      wrapper.prepend(compactTitle);
+      // If a section header exists, keep it at the very top and put title after it
+      if (sectionHeader) {
+        // Ensure section header is at top
+        wrapper.prepend(sectionHeader);
+        sectionHeader.insertAdjacentElement('afterend', compactTitle);
+      } else {
+        wrapper.prepend(compactTitle);
+      }
+    } else if (sectionHeader) {
+      // No compact title, but ensure section header is visible
+      wrapper.prepend(sectionHeader);
     }
 
     // If we have a thumbnail, insert it under the title
@@ -433,8 +446,9 @@ async function fetchAndShowInlineArticle(url) {
       const thumb = document.createElement('div');
       thumb.className = 'inline-thumb';
       thumb.innerHTML = `<img src="${thumbSrc}" alt="${thumbAlt}">`;
-      if (compactTitle) {
-        compactTitle.insertAdjacentElement('afterend', thumb);
+      const anchorAfter = compactTitle || sectionHeader;
+      if (anchorAfter) {
+        anchorAfter.insertAdjacentElement('afterend', thumb);
       } else {
         wrapper.prepend(thumb);
       }
@@ -450,13 +464,16 @@ async function fetchAndShowInlineArticle(url) {
     const sourceText = firstP ? firstP.textContent : wrapper.textContent;
     const excerpt = getWords(sourceText, 20);
 
-    // Keep only the compact title (if any), then an excerpt paragraph
+    // Keep only the section header (if any), the compact title (if any), then an excerpt paragraph
     Array.from(wrapper.children).forEach((child) => {
-      if (!compactTitle || child !== compactTitle) child.remove();
+      if (sectionHeader && child === sectionHeader) return;
+      if (compactTitle && child === compactTitle) return;
+      if (child.classList && (child.classList.contains('inline-thumb'))) return;
+      child.remove();
     });
     const previewP = document.createElement('p');
     previewP.textContent = excerpt;
-    const insertAfter = wrapper.querySelector('.inline-thumb') || compactTitle;
+    const insertAfter = wrapper.querySelector('.inline-thumb') || compactTitle || sectionHeader;
     if (insertAfter) {
       insertAfter.insertAdjacentElement('afterend', previewP);
     } else {

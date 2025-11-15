@@ -568,6 +568,21 @@ body {
   justify-content: space-between;
   margin-bottom: 24px;
 }
+.section-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.section-header .section-link {
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+.section-header .section-link:hover {
+  text-decoration: underline;
+}
 
 /* Latest title sizing */
 .latest #latest-heading {
