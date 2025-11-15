@@ -95,13 +95,13 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
   const trendingList = document.querySelector('.trending-list');
   if (trendingList) {
-    trendingList.innerHTML = articles.slice(0, 5).map(a => `<li><a href="${a.url}">${a.title}</a></li>`).join('');
+    trendingList.innerHTML = articles.slice(0, 5).map(a => `<li><a href="${a.url}" data-inline="reader" data-url="${a.url}">${a.title}</a></li>`).join('');
   }
   const latestList = document.querySelector('.latest-list');
   if (latestList) {
     latestList.innerHTML = articles.slice(0, 5).map(a => {
       const src = a.thumb ? encodeURI(a.thumb) : placeholder();
-      return `<li><a href="${a.url}"><img src="${src}" alt="${a.title}" loading="lazy"><span>${a.title}</span></a></li>`;
+      return `<li><a href="${a.url}" data-inline="reader" data-url="${a.url}"><img src="${src}" alt="${a.title}" loading="lazy"><span>${a.title}</span></a></li>`;
     }).join('');
   }
   let popularList = document.querySelector('.popular-list');
@@ -119,16 +119,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   if (popularList) {
-    popularList.innerHTML = articles.slice(0, 5).map(a => `<li><a href="${a.url}">${a.title}</a></li>`).join('');
+    popularList.innerHTML = articles.slice(0, 5).map(a => `<li><a href="${a.url}" data-inline="reader" data-url="${a.url}">${a.title}</a></li>`).join('');
   }
   const renderCard = (a) => {
     const src = a.thumb ? encodeURI(a.thumb) : placeholder();
     return `<article class="story-card">
-      <a class="card-media" href="${a.url}">
+      <a class="card-media" href="${a.url}" data-inline="reader" data-url="${a.url}">
         <img src="${src}" alt="${a.title}" />
       </a>
       <div class="card-content">
-        <h3><a href="${a.url}">${a.title}</a></h3>
+        <h3><a href="${a.url}" data-inline="reader" data-url="${a.url}">${a.title}</a></h3>
       </div>
     </article>`;
   };
@@ -140,6 +140,22 @@ document.addEventListener("DOMContentLoaded", () => {
   if (popularGrid && popularGrid.children.length === 0) {
     popularGrid.innerHTML = articles.slice(0, 4).map(renderCard).join('');
   }
+  const latestGrid = document.querySelector('.latest .card-grid');
+  if (latestGrid && latestGrid.children.length === 0) {
+    latestGrid.innerHTML = articles.slice(0, 4).map(renderCard).join('');
+  }
+
+  // Auto-show the most recent post inside div.content-stack on homepage
+  const inlineSlot = document.getElementById('inlineArticle');
+  if (inlineSlot && inlineSlot.hidden !== false) {
+    const isHome = /(?:^|\/)index\.html?$/.test(location.pathname) || location.pathname === '/' || location.pathname === '';
+    const hasHashNav = !!location.hash;
+    if (isHome && !hasHashNav && articles[0]?.url) {
+      // Load most recent post without pushing history
+      fetchAndShowInlineArticle(articles[0].url);
+    }
+  }
+
   const notif = {
     supported: 'Notification' in window,
     button: null,
@@ -299,34 +315,24 @@ async function fetchAndShowInlineArticle(url) {
                       || tmp.querySelector('main .article-content')
                       || tmp.querySelector('article.article-content');
 
+    // Render the article as-is (full header, hero, H1) inside the same layout
     if (articleOnly) {
-      slotContent.innerHTML = articleOnly.innerHTML;
+      slotContent.innerHTML = '';
+      const wrapper = document.createElement('article');
+      wrapper.className = 'article-content';
+      wrapper.innerHTML = articleOnly.innerHTML;
+      slotContent.appendChild(wrapper);
     } else {
-      // Fallback: still try main but remove any aside elements
       const mainLike = tmp.querySelector('.article-main') || tmp.querySelector('main') || tmp.body || tmp;
       mainLike.querySelectorAll('aside').forEach(a => a.remove());
-      slotContent.innerHTML = mainLike.innerHTML;
+      slotContent.innerHTML = '';
+      const wrapper = document.createElement('article');
+      wrapper.className = 'article-content';
+      wrapper.innerHTML = mainLike.innerHTML;
+      slotContent.appendChild(wrapper);
     }
 
-    // Append 'Continue browsing' links
-    const continueBlock = document.createElement('div');
-    continueBlock.className = 'inline-continue';
-    continueBlock.innerHTML = `
-      <hr>
-      <h3>Continue browsing</h3>
-      <ul class="continue-links">
-        <li><a href="#trending-heading">Trending Now</a></li>
-        <li><a href="#latest-heading">Latest</a> <a class="section-link" href="#latest-heading">View all</a></li>
-        <li><a href="#popular-heading">⭐ Popular Posts</a> <a class="section-link" href="#popular-heading">View all</a></li>
-        <li><a href="#tech-heading">Tech</a> <a class="section-link" href="#tech">More Tech</a></li>
-        <li><a href="#howto-heading">How‑To</a> <a class="section-link" href="#how-to">More Guides</a></li>
-        <li><a href="#ai-heading">AI Insights</a> <a class="section-link" href="#ai">More AI</a></li>
-        <li><a href="#reviews-heading">Reviews</a> <a class="section-link" href="#reviews">More Reviews</a></li>
-        <li><a href="#gadgets-heading">Gadgets &amp; Gear</a> <a class="section-link" href="#gadgets">More Gadgets</a></li>
-      </ul>
-    `;
-    slotContent.appendChild(continueBlock);
-
+    // Do not add extra bars, borders, or controls; keep layout identical
     slot.hidden = false;
     // Scroll the inline section into view
     slot.scrollIntoView({ behavior: 'smooth', block: 'start' });
