@@ -421,10 +421,20 @@ body {
   list-style: none;
   display: flex;
   gap: clamp(12px, 2vw, 32px);
-  padding: 0;
+  padding: 0 12px;
   margin: 0;
   font-weight: 500;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+
+.nav-list::-webkit-scrollbar { display: none; }
+
+.nav-list li { flex: 0 0 auto; }
 
 .nav-list a {
   display: inline-flex;

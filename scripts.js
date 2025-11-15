@@ -127,6 +127,85 @@ document.addEventListener("DOMContentLoaded", () => {
   if (popularGrid && popularGrid.children.length === 0) {
     popularGrid.innerHTML = articles.slice(0, 4).map(renderCard).join('');
   }
+  const notif = {
+    supported: 'Notification' in window,
+    button: null,
+    init() {
+      if (!this.supported) return;
+      if (Notification.permission === 'default') this.insertButton();
+      if (Notification.permission === 'granted' && !localStorage.getItem('tisNotifWelcomed')) {
+        this.welcome();
+      }
+    },
+    insertButton() {
+      const host = document.querySelector('.header-quick-links') || document.querySelector('.site-header');
+      if (!host) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Enable notifications';
+      btn.style.cssText = 'padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);font-weight:600;cursor:pointer;';
+      btn.addEventListener('click', async () => {
+        try {
+          const res = await Notification.requestPermission();
+          if (res === 'granted') {
+            this.welcome();
+            btn.remove();
+          }
+        } catch (e) {}
+      }, { once: true });
+      host.appendChild(btn);
+      this.button = btn;
+    },
+    welcome() {
+      try {
+        const opts = { body: 'Thanks for subscribing to updates from Tech in Sagein.', icon: 'tech in sagein.jpg', badge: 'tech in sagein.jpg' };
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistration().then(r => r?.showNotification ? r.showNotification('Tech in Sagein', opts) : new Notification('Tech in Sagein', opts));
+        } else {
+          new Notification('Tech in Sagein', opts);
+        }
+        localStorage.setItem('tisNotifWelcomed', '1');
+      } catch (e) {}
+    }
+  };
+  notif.init();
+  if (notif.supported && Notification.permission === 'default' && !localStorage.getItem('tisNotifDismissed')) {
+    setTimeout(() => {
+      const overlay = document.createElement('div');
+      overlay.id = 'tisNotifPopup';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);display:grid;place-items:center;';
+      const box = document.createElement('div');
+      box.style.cssText = 'width:min(420px,92vw);background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:22px 20px;display:grid;gap:12px;';
+      const h = document.createElement('h3');
+      h.textContent = 'Enable notifications?';
+      h.style.cssText = 'margin:0;font-size:1.1rem;';
+      const p = document.createElement('p');
+      p.textContent = 'Get alerts when new guides and updates are published.';
+      p.style.cssText = 'margin:0;color:var(--muted);line-height:1.6;';
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;margin-top:8px;';
+      const later = document.createElement('button');
+      later.type = 'button';
+      later.textContent = 'Not now';
+      later.style.cssText = 'padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-weight:600;cursor:pointer;';
+      const allow = document.createElement('button');
+      allow.type = 'button';
+      allow.textContent = 'Allow';
+      allow.style.cssText = 'padding:10px 16px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;cursor:pointer;';
+      later.addEventListener('click', () => { localStorage.setItem('tisNotifDismissed','1'); overlay.remove(); });
+      allow.addEventListener('click', async () => {
+        try {
+          const res = await Notification.requestPermission();
+          localStorage.setItem('tisNotifDismissed','1');
+          overlay.remove();
+          if (res === 'granted') notif.welcome();
+        } catch (e) { overlay.remove(); }
+      });
+      box.append(h,p,row); row.append(later,allow); overlay.appendChild(box);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) { localStorage.setItem('tisNotifDismissed','1'); overlay.remove(); } });
+      document.body.appendChild(overlay);
+    }, 600);
+  }
 });
 
 window.addEventListener("pageshow", () => {
