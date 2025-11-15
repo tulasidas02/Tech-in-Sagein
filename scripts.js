@@ -68,12 +68,65 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("currentYear").textContent = new Date().getFullYear();
 
   // Image fallbacks for content images
-  const placeholder = (topic) => `https://source.unsplash.com/800x500?${encodeURIComponent(topic || "technology")}`;
+  const placeholder = () => 'tech in sagein.jpg';
   document.querySelectorAll('.article-hero img, .card-media img').forEach((img) => {
     img.addEventListener('error', () => {
       img.src = placeholder(img.alt || 'technology');
     }, { once: true });
   });
+  const articles = [
+    { title: 'How to Delete Gmail Account', url: 'delete-gmail-account.html', thumb: 'article pic/How to Permanently Delete Your Gmai/maxresdefault (1).webp' },
+    { title: 'Create Jio Gemini Youth Offer', url: 'Create jio-gemini-youth-offer.html', thumb: 'article pic/gemini jio/Jio Google Gemini Offer ಹೇಗೆ ಕ್ಲೈಮ್ ಮಾಡಬೇಕು.png' },
+    { title: 'Canara Bank FD Partial Withdrawal', url: 'canara-bank-fd-partial-withdrawal.html', thumb: 'article pic/Canara Bank FD partial withdrawal/VS--YouTube-HowtoWithdrawPartofYourFixedDepositinCanaraBankinkannadaCanaraBankFDPartialRedempti-1’35”.jpg' },
+    { title: 'ChatGPT GO Upgrade', url: 'chatgpt-go-upgrade.html', thumb: 'article pic/ow to Use ChatGPT Go for/maxresdefault.webp' }
+  ];
+  const trendingList = document.querySelector('.trending-list');
+  if (trendingList) {
+    trendingList.innerHTML = articles.slice(0, 5).map(a => `<li><a href="${a.url}">${a.title}</a></li>`).join('');
+  }
+  const latestList = document.querySelector('.latest-list');
+  if (latestList) {
+    latestList.innerHTML = articles.slice(0, 5).map(a => {
+      const src = a.thumb ? encodeURI(a.thumb) : placeholder();
+      return `<li><a href="${a.url}"><img src="${src}" alt="${a.title}" loading="lazy"><span>${a.title}</span></a></li>`;
+    }).join('');
+  }
+  let popularList = document.querySelector('.popular-list');
+  if (!popularList) {
+    const sidebar = document.querySelector('.about-sidebar.sidebar-sticky') || document.querySelector('aside.sidebar-sticky') || document.querySelector('aside');
+    if (sidebar) {
+      const section = document.createElement('section');
+      section.className = 'sidebar-section';
+      section.innerHTML = `
+        <h3 class="sidebar-title">⭐ Popular Posts</h3>
+        <ul class="popular-list"></ul>
+      `;
+      sidebar.appendChild(section);
+      popularList = section.querySelector('.popular-list');
+    }
+  }
+  if (popularList) {
+    popularList.innerHTML = articles.slice(0, 5).map(a => `<li><a href="${a.url}">${a.title}</a></li>`).join('');
+  }
+  const renderCard = (a) => {
+    const src = a.thumb ? encodeURI(a.thumb) : placeholder();
+    return `<article class="story-card">
+      <a class="card-media" href="${a.url}">
+        <img src="${src}" alt="${a.title}" />
+      </a>
+      <div class="card-content">
+        <h3><a href="${a.url}">${a.title}</a></h3>
+      </div>
+    </article>`;
+  };
+  const trendingGrid = document.querySelector('.trending .card-grid');
+  if (trendingGrid && trendingGrid.children.length === 0) {
+    trendingGrid.innerHTML = articles.slice(0, 4).map(renderCard).join('');
+  }
+  const popularGrid = document.querySelector('.popular .card-grid');
+  if (popularGrid && popularGrid.children.length === 0) {
+    popularGrid.innerHTML = articles.slice(0, 4).map(renderCard).join('');
+  }
 });
 
 window.addEventListener("pageshow", () => {
