@@ -56,6 +56,18 @@ homeLink?.addEventListener("click", (event) => {
 
 document.addEventListener("DOMContentLoaded", () => {
   hideLoader();
+
+  // Measure fixed header height and set CSS offsets so content isn’t hidden
+  const setHeaderOffset = () => {
+    const mast = document.querySelector('.site-masthead');
+    if (!mast) return;
+    const h = mast.offsetHeight;
+    document.documentElement.style.setProperty('--header-offset-desktop', `${h}px`);
+    document.documentElement.style.setProperty('--header-offset-mobile', `${Math.max(96, h)}px`);
+  };
+  setHeaderOffset();
+  window.addEventListener('resize', () => { requestAnimationFrame(setHeaderOffset); }, { passive: true });
+
   const params = new URLSearchParams(window.location.search);
   const section = params.get("section");
   if (section) {
@@ -75,6 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, { once: true });
   });
   const articles = [
+    { title: 'AI Agents Are Creating New Hacking Risks — Experts Warn', url: 'ai-agents-hacking-risks.html', thumb: "article pic/AI agents or hackers' best friends/Generated Image November 15, 2025 - 2_21PM (1).png" },
     { title: 'How to Delete Gmail Account', url: 'delete-gmail-account.html', thumb: 'article pic/How to Permanently Delete Your Gmai/maxresdefault (1).webp' },
     { title: 'Create Jio Gemini Youth Offer', url: 'Create jio-gemini-youth-offer.html', thumb: 'article pic/gemini jio/Jio Google Gemini Offer ಹೇಗೆ ಕ್ಲೈಮ್ ಮಾಡಬೇಕು.png' },
     { title: 'Canara Bank FD Partial Withdrawal', url: 'canara-bank-fd-partial-withdrawal.html', thumb: 'article pic/Canara Bank FD partial withdrawal/VS--YouTube-HowtoWithdrawPartofYourFixedDepositinCanaraBankinkannadaCanaraBankFDPartialRedempti-1’35”.jpg' },
