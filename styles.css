@@ -1038,6 +1038,52 @@ body {
   .latest .card-grid { grid-template-columns: 1fr; }
 }
 
+/* Trending and Popular grids */
+.trending .card-grid,
+.popular .card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+@media (min-width: 1280px) {
+  .trending .card-grid,
+  .popular .card-grid {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .trending .card-grid,
+  .popular .card-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* Tech and Category dense grids */
+#tech .card-grid,
+.category .card-grid.dense {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+@media (min-width: 1280px) {
+  #tech .card-grid,
+  .category .card-grid.dense {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  #tech .card-grid,
+  .category .card-grid.dense {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 .latest .story-card {
   border-radius: 14px;
 }
